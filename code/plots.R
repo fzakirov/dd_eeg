@@ -1,12 +1,9 @@
-library(lme4)
-library(lmerTest)
-library(performance)
-library(dplyr)
-library(emmeans)
+library(ggplot2)
+
+path = "/users/dd_eeg/data"
 
 # FEEDBACK-RELATED MEASURES
-path = "/users/dd_eeg/data"
-csv_name <- sprintf("%s/delta_power.csv", path) # filename with dataframe of interest (change to delta_power) for delta
+csv_name <- sprintf("%s/theta_power.csv", path) # filename with dataframe of interest (change to delta_power) for delta
 
 df <- read.csv(csv_name)
 
@@ -30,15 +27,25 @@ upper_th <- mean(df$pow)+3*sd(df$pow)
 lower_th <- mean(df$pow)-3*sd(df$pow)
 df <- df %>% filter(pow <= upper_th & pow >= lower_th) # remove outliers
 
-# fit the model
-model <- aov(pow ~ df, data=df)
-summary(model)
+ggplot(df, aes(x = df, y = pow) )+
+  geom_point() +  # Scatter plot of the data points
+  geom_smooth(method = "glm", se = TRUE) +  # Add a linear regression line
+  labs(title = "Power",
+       x = "DF",
+       y = "Power") +
+  theme_minimal() + 
+  theme(axis.title = element_text(face = "plain"),
+        legend.title = element_text(face = "plain"),
+        panel.border = element_rect(color = "grey", fill = NA),
+        plot.title = element_text(hjust = 0.5, face = "plain"))# Optional: apply a minimal theme
+
 
 # ANTICIPATORY ALPHA PSD
 csv_name <- sprintf("%s/alpha_poz_raw.csv", path)
 
 df <- read.csv(csv_name)
-df$psd = df$psd * 1e6 # this is required as MNE's output PSD values are too small and stats will break
+
+df$psd = df$psd * 1e12
 
 # Convert delay to a factor
 df$delay <- as.factor(df$delay)
@@ -48,7 +55,15 @@ upper_th <- mean(df$psd)+3*sd(df$psd)
 lower_th <- mean(df$psd)-3*sd(df$psd)
 df <- df %>% filter(psd <= upper_th & psd >= lower_th)
 
-# Fit the model
-model <- lmer(psd ~ df * delay + (1 | id), data = df)
-anova_results <- anova(model, ddf = "Kenward-Roger")
-anova_results
+
+ggplot(df, aes(x = df, y = psd) )+
+  geom_point() +  # Scatter plot of the data points
+  geom_smooth(method = "glm", se = TRUE) +  # Add a linear regression line
+  labs(title = "Alpha band PSD",
+       x = "DF",
+       y = "μV²/Hz") +
+  theme_minimal() + 
+  theme(axis.title = element_text(face = "plain"),
+        legend.title = element_text(face = "plain"),
+        panel.border = element_rect(color = "grey", fill = NA),
+        plot.title = element_text(hjust = 0.5, face = "plain"))# Optional: apply a minimal theme
