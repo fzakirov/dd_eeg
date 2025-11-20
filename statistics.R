@@ -5,10 +5,11 @@ library(dplyr)
 library(emmeans)
 
 # FEEDBACK-RELATED MEASURES
-path = "path_to_data"
-csv_name <- sprintf("%s/theta_power.csv", path) # filename with dataframe of interest
+path = "/user/dd_eeg/"
+csv_name <- sprintf("%s/delta_power.csv", path) # filename with dataframe of interest (change to delta_power) for delta
 
 df <- read.csv(csv_name)
+hist(df$df,main = "distribution of DF in alpha data")
 # take only IDs with sufficient trial count
 valid_id <- c('LV001', 'AM003', 'DK007', 'AM004', 'AM005', 'AR004', 'AR005',
               'GP001', 'DK004', 'DK009', 'AR006', 'AD006', 'FZ002', 'DK011',
@@ -25,21 +26,21 @@ df <- df[df$id %in% valid_id, ]
 # factorize IDs
 df$id <- as.factor(df$id)
 
-# note that the name of the data column is "pow" for theta/delta power and "amp" for RewP
 upper_th <- mean(df$pow)+3*sd(df$pow)
 lower_th <- mean(df$pow)-3*sd(df$pow)
 df <- df %>% filter(pow <= upper_th & pow >= lower_th) # remove outliers
 
-# compute model
+# fit the model
 model <- aov(pow ~ df, data=df)
 summary(model)
 
 # ANTICIPATORY ALPHA PSD
-csv_name <- sprintf("%s/alpha_poz_raw.csv", path) # filename with dataframe of interest
+csv_name <- sprintf("%s/alpha_poz_raw.csv", path)
 
 df <- read.csv(csv_name)
+df$psd = df$psd * 1e6 # this is required as MNE's output PSD values are too small and stats will break
 
-# Simulate delay as a factor
+# Convert delay to a factor
 df$delay <- as.factor(df$delay)
 df$id <- as.factor(df$id)
 
@@ -49,7 +50,5 @@ df <- df %>% filter(psd <= upper_th & psd >= lower_th)
 
 # Fit the model
 model <- lmer(psd ~ df * delay + (1 | id), data = df)
-
-# Perform ANOVA
-anova_results <- anova(model)
+anova_results <- anova(model, ddf = "Kenward-Roger")
 anova_results
